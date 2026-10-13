@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1420">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Game Releases</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #0d1420; --card: #16202f; --line: #24324a; --text: #e6edf6;
+    --dim: #8a9bb3; --early: #f0b429; --key: #46c46a; --req: #f0b429;
+    --stale: #e5534b; --accent: #4ea1ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(13,20,32,.96);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--line);
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  h1 { font-size: 17px; margin: 0; letter-spacing: .04em; flex: 1; }
+  .fresh { font-size: 12px; color: var(--dim); text-align: right; }
+  .fresh.stale { color: var(--stale); }
+  .filters { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; }
+  .filters button { flex: none; background: var(--card); color: var(--dim);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+    font: inherit; font-size: 13px; }
+  .filters button.on { color: var(--text); border-color: var(--accent);
+    background: rgba(78,161,255,.12); }
+  main { padding: 6px 12px calc(24px + env(safe-area-inset-bottom)); }
+  .day { margin: 18px 2px 8px; font-size: 12px; font-weight: 700;
+    letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+  .day.today { color: var(--early); }
+  a.card { display: flex; gap: 10px; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; margin-bottom: 8px; min-height: 76px; }
+  a.card.hl { border-color: var(--early); }
+  a.card:active { filter: brightness(1.15); }
+  .cover { flex: none; width: 116px; background: #0a101a center / cover no-repeat; }
+  .body { padding: 8px 10px 8px 0; min-width: 0; flex: 1; }
+  .title { font-weight: 600; font-size: 15px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 6px;
+    border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .chip.when { color: var(--text); font-weight: 600; }
+  .chip.out { color: var(--key); border-color: rgba(70,196,106,.45); }
+  .chip.early { color: var(--early); border-color: rgba(240,180,41,.45); }
+  .chip.key { color: var(--key); border-color: rgba(70,196,106,.45); }
+  .chip.req { color: var(--req); border-color: rgba(240,180,41,.45); }
+  .chip.mail { color: #7fc8ff; border-color: rgba(127,200,255,.4); }
+  .note { font-size: 12px; color: var(--early); margin-top: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty, .err { text-align: center; color: var(--dim); padding: 40px 10px; }
+  .err { color: var(--stale); }
+  .unlock { max-width: 340px; margin: 48px auto; text-align: center; color: var(--dim); }
+  .unlock .lock { font-size: 40px; }
+  .unlock small { color: var(--dim); }
+  .unlock .bad { color: var(--stale); }
+  .unlock input { width: 100%; margin: 10px 0; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    font: 16px ui-monospace, monospace; text-align: center; letter-spacing: .06em; }
+  .unlock button { width: 100%; padding: 12px; border-radius: 10px; border: 0;
+    background: var(--accent); color: #fff; font: 600 15px system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>🎮 GAME RELEASES</h1>
+    <div class="fresh" id="fresh">carregando…</div>
+  </div>
+  <div class="filters">
+    <button data-f="all" class="on">Todos</button>
+    <button data-f="keys">🔑 Com chave</button>
+    <button data-f="hl">★ Destacados</button>
+    <button data-f="early">⚡ Early access</button>
+  </div>
+</header>
+<main id="list"></main>
+
+<script>
+// Read-only phone view of the Game Releases dashboard. data.json is pushed
+// by the desktop app after each refresh; with the PC off this shows the
+// last snapshot and says how old it is.
+let data = null;
+let filter = localStorageGet("filter") || "all";
+
+function localStorageGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function dayKey(g) {
+  if (!g.d) return "tbd";
+  if (!g.ht) return g.d.slice(0, 10);               // date-only: keep the day
+  const d = new Date(g.d);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function dayLabel(key) {
+  if (key === "tbd") return "Sem data";
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.round((dt - today) / 86400000);
+  const name = dt.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  return diff === 0 ? `Hoje · ${name}` : diff === 1 ? `Amanhã · ${name}` : name;
+}
+function whenChip(g) {
+  if (!g.d) return "";
+  if (!g.ht) return "";
+  const t = new Date(g.d), ms = t - Date.now();
+  const hhmm = t.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (ms <= 0) return `<span class="chip out">✓ lançado · ${hhmm}</span>`;
+  const h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
+  const left = d >= 1 ? `${d}d ${h % 24}h` : h >= 1 ? `${h}h ${Math.floor(ms / 60000) % 60}m` : `${Math.floor(ms / 60000)}m`;
+  return `<span class="chip when">⏳ ${left}</span><span class="chip">${hhmm}</span>`;
+}
+function card(g) {
+  const chips = [whenChip(g)];
+  if (g.e) chips.push(`<span class="chip early">⚡ ${esc(g.e.label)}</span>`);
+  for (const p of g.p || []) chips.push(`<span class="chip">${esc(p)}</span>`);
+  for (const k of g.k || []) chips.push(`<span class="chip key">🔑 ${esc(k.site)}</span>`);
+  if (g.r) chips.push(`<span class="chip req">${esc(g.r)}</span>`);
+  if (g.m) chips.push(`<span class="chip mail">✉ enviado</span>`);
+  const note = g.e && g.e.note ? `<div class="note">⚡ ${esc(g.e.note)}</div>` : "";
+  return `<a class="card${g.h ? " hl" : ""}" href="${esc(g.u || "#")}" target="_blank" rel="noopener">
+    <div class="cover" style="background-image:url('${esc(g.c || "")}')"></div>
+    <div class="body"><div class="title">${esc(g.t)}</div>
+    <div class="chips">${chips.join("")}</div>${note}</div></a>`;
+}
+function passes(g) {
+  if (filter === "keys") return (g.k && g.k.length) || g.r;
+  if (filter === "hl") return g.h;
+  if (filter === "early") return !!g.e;
+  return true;
+}
+function render() {
+  const list = document.getElementById("list");
+  if (!data) return;
+  const groups = new Map();
+  for (const g of data.games.filter(passes)) {
+    const k = dayKey(g);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(g);
+  }
+  const keys = [...groups.keys()].sort((a, b) => a === "tbd" ? 1 : b === "tbd" ? -1 : a < b ? -1 : 1);
+  const todayKey = dayKey({ d: new Date().toISOString(), ht: true });
+  list.innerHTML = keys.length ? keys.map(k =>
+    `<div class="day${k === todayKey ? " today" : ""}">${esc(dayLabel(k))}</div>` +
+    groups.get(k).map(card).join("")).join("")
+    : `<div class="empty">Nenhum jogo neste filtro.</div>`;
+  renderFresh();
+}
+function renderFresh() {
+  const el = document.getElementById("fresh");
+  if (!data) return;
+  const t = new Date(data.updatedAt || data.publishedAt);
+  const min = Math.round((Date.now() - t) / 60000);
+  const ago = min < 60 ? `${min} min` : min < 1440 ? `${Math.round(min / 60)} h` : `${Math.round(min / 1440)} d`;
+  el.textContent = `atualizado há ${ago}`;
+  // the PC refreshes every 20 min; older than 2 h means it is off
+  el.classList.toggle("stale", min > 120);
+  el.title = min > 120 ? "O PC parece estar desligado — este é o último retrato." : "";
+  if (min > 120) el.textContent += " · PC desligado?";
+}
+// data.enc.json is AES-256-GCM ciphertext (the repo is public, the data is
+// not). The passphrase is asked once and kept only on this device.
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decrypt(blob, phrase) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(phrase),
+    "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", hash: "SHA-256", salt: b64(blob.salt), iterations: blob.iter },
+    base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(blob.iv) }, key, b64(blob.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function askPassphrase(msg) {
+  document.getElementById("fresh").textContent = "";
+  document.getElementById("list").innerHTML = `
+    <form id="unlock" class="unlock">
+      <div class="lock">🔒</div>
+      <p>Digite a senha do dashboard.<br><small>Ela está no PC, no arquivo <b>mobile_key.txt</b>. Fica salva só neste aparelho.</small></p>
+      ${msg ? `<p class="bad">${esc(msg)}</p>` : ""}
+      <input id="pp" type="password" autocomplete="current-password" autocapitalize="none"
+             spellcheck="false" placeholder="xxxx-xxxx-xxxx-xxxx">
+      <button type="submit">Entrar</button>
+    </form>`;
+  const pp = document.getElementById("pp"); pp.focus();
+  document.getElementById("unlock").onsubmit = ev => {
+    ev.preventDefault();
+    localStorageSet("pp", pp.value.trim().toLowerCase());
+    load();
+  };
+}
+let lastBlob = null;
+async function load() {
+  let blob;
+  try {
+    const r = await fetch("data.enc.json?_=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    blob = await r.json();
+  } catch (e) {
+    if (!data) document.getElementById("list").innerHTML =
+      `<div class="err">Não consegui carregar os dados (${esc(e.message)}).</div>`;
+    return;
+  }
+  if (data && lastBlob && blob.ct === lastBlob.ct) return;   // nothing new
+  const phrase = localStorageGet("pp");
+  if (!phrase) return askPassphrase();
+  try {
+    data = await decrypt(blob, phrase);
+    lastBlob = blob;
+    render();
+  } catch (e) {
+    try { localStorage.removeItem("pp"); } catch (_) {}
+    data = null;
+    askPassphrase("Senha incorreta.");
+  }
+}
+for (const b of document.querySelectorAll(".filters button")) {
+  b.classList.toggle("on", b.dataset.f === filter);
+  b.onclick = () => {
+    filter = b.dataset.f; localStorageSet("filter", filter);
+    document.querySelectorAll(".filters button").forEach(x => x.classList.toggle("on", x === b));
+    render();
+  };
+}
+load();
+setInterval(load, 5 * 60000);                  // pick up new pushes
+setInterval(() => { render(); }, 60000);       // keep countdowns moving
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
