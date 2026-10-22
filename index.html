@@ -55,6 +55,9 @@
   .chip.key { color: var(--key); border-color: rgba(70,196,106,.45); }
   .chip.req { color: var(--req); border-color: rgba(240,180,41,.45); }
   .chip.mail { color: #7fc8ff; border-color: rgba(127,200,255,.4); }
+  .chip.demo { color: #9fd3ff; border-color: rgba(47,91,128,.9); text-decoration: none; }
+  .chip.demonew { color: #08121f; background: #ffd34d; border-color: #ffd34d;
+    font-weight: 700; text-decoration: none; }
   .chip.gp { color: #5fd35f; border-color: rgba(75,194,75,.5);
     background: rgba(16,124,16,.18); font-weight: 600; }
   .note { font-size: 12px; color: var(--early); margin-top: 4px;
@@ -84,6 +87,7 @@
     <button data-f="hl">★ Destacados</button>
     <button data-f="early">⚡ Early access</button>
     <button data-f="gp">Game Pass</button>
+    <button data-f="demo">Demo</button>
   </div>
 </header>
 <main id="list"></main>
@@ -129,6 +133,7 @@ function card(g) {
   const chips = [whenChip(g)];
   if (g.e) chips.push(`<span class="chip early">⚡ ${esc(g.e.label)}</span>`);
   for (const p of g.p || []) chips.push(`<span class="chip">${esc(p)}</span>`);
+  if (g.dm) chips.push(`<a class="chip ${g.dm.n ? "demonew" : "demo"}" href="${esc(g.dm.u)}" target="_blank" rel="noopener">${g.dm.n ? "DEMO NOVA" : "DEMO"}</a>`);
   if (g.gp) chips.push(`<span class="chip gp">${g.gp === 1 ? "GAME PASS day one" : "GAME PASS"}</span>`);
   for (const k of g.k || []) chips.push(`<span class="chip key">🔑 ${esc(k.site)}</span>`);
   if (g.r) chips.push(`<span class="chip req">${esc(g.r)}</span>`);
@@ -144,6 +149,7 @@ function passes(g) {
   if (filter === "hl") return g.h;
   if (filter === "early") return !!g.e;
   if (filter === "gp") return !!g.gp;
+  if (filter === "demo") return !!g.dm;
   return true;
 }
 function render() {
