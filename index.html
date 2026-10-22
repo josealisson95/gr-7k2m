@@ -144,7 +144,15 @@ function card(g) {
     <div class="body"><div class="title">${esc(g.t)}</div>
     <div class="chips">${chips.join("")}</div>${note}</div></a>`;
 }
+// a released game stays 24 h after its release (date-only: after that day)
+function expired(g) {
+  if (!g.d) return false;
+  const t = new Date(g.d);
+  if (!g.ht) t.setHours(23, 59, 59);
+  return Date.now() > t.getTime() + 24 * 3600 * 1000;
+}
 function passes(g) {
+  if (expired(g)) return false;
   if (filter === "keys") return (g.k && g.k.length) || g.r;
   if (filter === "hl") return g.h;
   if (filter === "early") return !!g.e;
