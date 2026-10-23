@@ -133,7 +133,10 @@ function card(g) {
   const chips = [whenChip(g)];
   if (g.e) chips.push(`<span class="chip early">⚡ ${esc(g.e.label)}</span>`);
   for (const p of g.p || []) chips.push(`<span class="chip">${esc(p)}</span>`);
-  if (g.dm) chips.push(`<a class="chip ${g.dm.n ? "demonew" : "demo"}" href="${esc(g.dm.u)}" target="_blank" rel="noopener">${g.dm.n ? "DEMO NOVA" : "DEMO"}</a>`);
+  // a <span>, not an <a>: the card itself is a link, and a link inside a
+  // link breaks the whole card layout (phone view, 2026-10-23)
+  if (g.dm) chips.push(`<span class="chip ${g.dm.n ? "demonew" : "demo"}" role="link"
+    onclick="event.preventDefault();event.stopPropagation();window.open('${esc(g.dm.u)}','_blank','noopener')">${g.dm.n ? "DEMO NOVA" : "DEMO"}</span>`);
   if (g.gp) chips.push(`<span class="chip gp">${g.gp === 1 ? "GAME PASS day one" : "GAME PASS"}</span>`);
   for (const k of g.k || []) chips.push(`<span class="chip key">🔑 ${esc(k.site)}</span>`);
   if (g.r) chips.push(`<span class="chip req">${esc(g.r)}</span>`);
