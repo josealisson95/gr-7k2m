@@ -58,6 +58,10 @@
   .chip.demo { color: #9fd3ff; border-color: rgba(47,91,128,.9); text-decoration: none; }
   .chip.demonew { color: #08121f; background: #ffd34d; border-color: #ffd34d;
     font-weight: 700; text-decoration: none; }
+  .chip.thread { color: #9fd3ff; border-color: rgba(47,91,128,.9); }
+  .chip.tlinks { color: #ffb3d9; border-color: rgba(122,61,99,.9); }
+  .chip.lkon { color: #7fe08a; background: rgba(76,175,80,.16); border-color: rgba(76,175,80,.6); font-weight: 700; }
+  .chip.lkoff { color: #8a97a6; border-color: #3a4a5c; }
   .chip.gp { color: #5fd35f; border-color: rgba(75,194,75,.5);
     background: rgba(16,124,16,.18); font-weight: 600; }
   .note { font-size: 12px; color: var(--early); margin-top: 4px;
@@ -141,6 +145,15 @@ function card(g) {
   for (const k of g.k || []) chips.push(`<span class="chip key">🔑 ${esc(k.site)}</span>`);
   if (g.r) chips.push(`<span class="chip req">${esc(g.r)}</span>`);
   if (g.m) chips.push(`<span class="chip mail">✉ enviado</span>`);
+  const open = u => `onclick="event.preventDefault();event.stopPropagation();window.open('${esc(u)}','_blank','noopener')"`;
+  (g.th || []).forEach((u, i, a) => chips.push(`<span class="chip thread" role="link" ${open(u)}>🧵 Thread${a.length > 1 ? " " + (i + 1) : ""}</span>`));
+  if (g.tl) chips.push(`<span class="chip tlinks">🎬 ${g.tl}</span>`);
+  if (g.lk) {
+    const nm = g.lk.n ? esc(g.lk.n) + ": " : "";
+    chips.push(g.lk.on
+      ? `<span class="chip lkon" role="link" ${open(g.lk.u)}>${nm}Disponível</span>`
+      : `<span class="chip lkoff">${nm}Não Disponível</span>`);
+  }
   const note = g.e && g.e.note ? `<div class="note">⚡ ${esc(g.e.note)}</div>` : "";
   return `<a class="card${g.h ? " hl" : ""}" href="${esc(g.u || "#")}" target="_blank" rel="noopener">
     <div class="cover" style="background-image:url('${esc(g.c || "")}')"></div>
